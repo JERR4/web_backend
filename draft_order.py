@@ -8,7 +8,6 @@ DRAFT_ORDER = {
             'name': 'ENGINE SHORT',
             'specification': 'V8 EFI PETROL',
             'oem_number': 'TF-EXH-2024-001',
-            'operation' : 'shipment',
             'quantity': 1,
         },
         {
@@ -17,7 +16,6 @@ DRAFT_ORDER = {
             'name': 'TRANSMISSION BRAKE',
             'specification': 'V8 EFI PETROL',
             'oem_number': 'QX-EXH-2024-005',
-            'operation' : 'delivery',
             'quantity': 5,
         },
         {
@@ -26,7 +24,6 @@ DRAFT_ORDER = {
             'name': 'TAILPIPE',
             'specification': 'V8 EFI PETROL',
             'oem_number': 'ST-EXH-2024-004',
-            'operation' : 'delivery',
             'quantity': 4,
         },
     ]

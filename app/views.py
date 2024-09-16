@@ -21,18 +21,7 @@ def part(request, part_id):
 
 def orders(request, order_id):
     order = getOrderById(order_id)  # Получаем заказ
-    delivery_parts = [part for part in order["parts"] if part["operation"] == "delivery"]
-    shipment_parts = [part for part in order["parts"] if part["operation"] == "shipment"]
-
-    # Проверяем наличие POST запроса от кнопки "Оформить"
-    if request.method == "POST":
-        return render(request, "orders.html", {"DRAFT_ORDER": order, "parts": shipment_parts, "operation_type": "shipment"})
-    
-    # Если есть доставки, выводим их, иначе сразу отгрузки
-    if delivery_parts:
-        return render(request, "orders.html", {"DRAFT_ORDER": order, "parts": delivery_parts, "operation_type": "delivery"})
-    else:
-        return render(request, "orders.html", {"DRAFT_ORDER": order, "parts": shipment_parts, "operation_type": "shipment"})
+    return render(request, "orders.html", {"DRAFT_ORDER": order})
     
 
 def get_part_by_id(part_id):

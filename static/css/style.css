@@ -19,9 +19,20 @@ body {
   border-color: #000;
 }
 
+.custom-footer {
+  background-color: #212539;
+  color: #fff;
+  padding: 20px 0;
+}
+
+.custom-footer p {
+  margin: 0;
+}
+
                                                               /* base_card.html */
 
 .part-card {
+  font-family: "Inter", "Source Sans Pro", "Helvetica";
   display: flex;
   align-items: center;
   border: 1px solid #ddd;
@@ -82,30 +93,9 @@ body {
   padding-left: 30px; /* Отступ от правого края карточки */
 }
 
-.add-controls {
-  display: flex;
-  flex-direction: column;
-}
-
-.delivery_with_label {
-  display: flex;
-  flex-direction: none;
-  margin-bottom: 12px
-}
-
-.delivery-button {
-  padding-left: 25px;
-}
-
-.shipping-button {
-  padding-left: 100px;
-}
-
-.delivery-button button, .shipping-button button {
+.add-button {
   width: 110px; /* Фиксированная ширина кнопок */
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin-top: 20px;
   height: 25px;
   font-size: 14px;
 }
@@ -130,7 +120,6 @@ input[type="text"] {
   max-width: 500px;
   margin: 0 auto 15px;
 }
-
                                                               /*part.html */
 .in-part-page {
   padding: 20px;
