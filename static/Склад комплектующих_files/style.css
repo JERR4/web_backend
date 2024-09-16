@@ -1,0 +1,173 @@
+                                                              /* Общие стили */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #fff8ee;
+}
+
+.custom-navbar {
+  background-color: #212539; /* Замените на нужный вам цвет */
+}
+
+.btn-outline-dark {
+  background-color: #212539;
+  color: #fff;
+}
+
+.btn-outline-dark:hover {
+  background-color: #ffffff;
+  color: #212539;
+  border-color: #000;
+}
+
+                                                              /* base_card.html */
+
+.part-card {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ddd;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: white;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  margin: 0 auto; /* Центрирование карточки */
+}
+
+.part-photo {
+  width: 50%; /* Изображение будет занимать 50% ширины карточки */
+  height: auto; /* Автоматическая высота для сохранения пропорций */
+  object-fit: cover; /* Изображение будет обрезано, если не подходит по размеру */
+}
+
+.part-details a {
+  text-decoration: none;
+}
+
+.part-details h5 {
+  color: black;
+  text-decoration: none;
+}
+
+.card-title:hover {
+  font-weight: bold; /* Делает текст жирным при наведении */
+}
+
+/* Описание детали */
+.part-details {
+  padding-left: 20px;
+}
+
+/* Оформление заголовков и текста */
+.card-title {
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+
+.card-text {
+  margin-bottom: 8px;
+}
+
+                                                              /* main_card.html, order_card.html */
+
+.delivery-row, .quantity-row  {
+  display: flex;
+  justify-content: flex-start; /* Выравнивание элементов по левому краю */
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+/* Контейнеры для контролов */
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  padding-left: 30px; /* Отступ от правого края карточки */
+}
+
+.delivery-controls {
+  display: flex;
+  flex-direction: column;
+  padding-left: 30px;
+}
+
+.delivery-button, .shipping-button {
+  margin-bottom: 10px; /* Отступ между кнопками */
+}
+
+/* Кнопки и инпуты */
+.quantity-controls button{
+  display: flex;
+  align-items: center;
+  height: 25px; /* Устанавливаем высоту кнопок */
+  width: 25px;
+  font-size: 14px; /* Уменьшаем шрифт */
+}
+
+input[type="text"] {
+  height: 30px; /* Устанавливаем высоту инпута */
+  text-align: center;
+}
+
+                                                              /*index.html */
+
+.search-panel {
+  max-width: 500px;
+  margin: 0 auto 15px;
+}
+
+                                                              /*part.html */
+.in-part-page {
+  padding: 20px;
+}
+
+.in-part-name {
+  font-size: 1.75rem;
+  color: #343a40;
+}
+
+.in-part-oem {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.in-part-content {
+  margin-top: 20px;
+}
+
+.in-part-image {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.in-part-details-bg {
+  background-color: #fff;
+  border-radius: 8px;
+}
+
+.in-part-details {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 25px;
+}
+
+.in-part-details ul {
+  padding-left: 0;
+  list-style-type: none;
+}
+
+.in-part-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: 10px;
+}
+
+.in-part-info-details {
+  display: flex;
+  line-height: 30px;
+  flex-direction: column;
+}
+
+.in-part-info-details p {
+  margin: 0;
+}

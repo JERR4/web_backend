@@ -1,0 +1,33 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+
+    <div class="position-relative mb-3">
+        <h2 class="text-center">Комплектующие</h2>
+        <div class="position-absolute end-0 top-0">
+            <a href="/orders/{{ DRAFT_ORDER.id }}/" class="w-25 position-relative">
+                <button type="submit" class="btn btn-outline-dark">
+                    В обработке
+                </button>
+                <!-- Кружок с количеством элементов в обработке -->
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    {{ parts_in_processing }}
+                </span>
+            </a>
+        </div>
+    </div>
+
+    <form class="search-form d-flex search-panel mb-3" method="GET" action=".">
+        <input class="form-control me-2" type="search" placeholder="Введите название" name="part_name" value="{{ part_name }}" aria-label="Search">
+        <button class="btn btn-outline-dark" type="submit">Поиск</button>
+    </form>
+
+    <div class="row g-2">
+        {% for part in parts %}
+            <div class="col-md-6">
+                {% include 'main_card.html' %}
+            </div>
+        {% endfor %}
+    </div>
+
+{% endblock %}

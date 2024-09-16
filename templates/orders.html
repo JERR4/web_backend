@@ -1,0 +1,39 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="d-flex justify-content-between">
+            <span>
+                {% if operation_type == "delivery" %}
+                    На доставку
+                {% else %}
+                    На отгрузку
+                {% endif %}
+            </span>
+            <span>
+                Плановая дата: {{DRAFT_ORDER.planned_date}}
+            </span>
+        </h2>
+        
+        <div class="delivery-cards">
+            <div class="row g-2">
+                {% for part in parts %}
+                    <div class="col-12">
+                        {% include 'order_card.html' with part=part %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col text-end">
+        <form method="POST">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-dark">Оформить</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="in-part-page">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="in-part-name">{{ part.name }} - {{ part.specification }}</h2>
+            <div class="in-part-oem">OEM: {{ part.oem_number }}</div>
+            <hr>
+
+            <div class="in-part-content row">
+                <p class="in-part-description">{{ part.short_description }}</p>
+
+                <div class="col-md-6">
+                    <img class="in-part-image" src={{part.image}} alt="part Image">
+                </div>
+
+                <div class="col-md-6">
+                    <div class="in-part-details-bg">
+                        <div class="in-part-details">
+                            <h4>Состав комплекта:</h4>
+                            <ul class="list-unstyled">
+                                {% for part in part.set_composition %}
+                                    <li>{{ part }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="in-part-info">
+                    <div class="in-part-info-details">
+                        <p><strong>Масса комплекта:</strong> {{ part.weight }}</p>
+                        <p><strong>Размер комплекта с упаковкой:</strong> {{ part.dimensions }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

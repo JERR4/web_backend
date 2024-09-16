@@ -1,0 +1,13 @@
+<div id="{{ part.id }}" class="part-card">
+    <img class="part-photo" src={{part.image}} alt="Part Image">
+    
+    <div class="part-details">
+        <a href="/parts/{{ part.id }}/">
+            <h5 class="card-title">{{ part.name }}</h5>
+        </a>
+        <p class="card-text"><strong>Спецификация:</strong> {{ part.specification }}</p>
+        <p class="card-text"><strong>OEM Номер:</strong> {{ part.oem_number }}</p>
+        {% block content %}
+        {% endblock %}
+    </div>
+</div>
