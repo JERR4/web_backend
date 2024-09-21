@@ -1,41 +1,68 @@
-from django.shortcuts import render, get_object_or_404
-from data import PARTS_DATA
-from draft_order import DRAFT_ORDER
+from django.contrib.auth.models import User
+from django.db import connection
+from app.models import Part, Order, PartOrder
+from django.shortcuts import render, redirect
+from django.utils import timezone
 
 def index(request):
-    part_name = request.GET.get("part_name", "")  # Use a more descriptive name for the query parameter
-    parts = search_part(part_name)  # Search for parts matching the part name
-    parts_in_processing = sum(1 for part in DRAFT_ORDER['parts'])
-    return render(request, 'index.html', {
-        'parts': parts, 
-        'part_name': part_name,  # Pass the part name to the template
-        'DRAFT_ORDER': DRAFT_ORDER,
-        'parts_in_processing': parts_in_processing  # Number of parts in processing
-    })
+    part_name = request.GET.get("part_name", "")
+    
+    # Поиск деталей по названию
+    if part_name:
+        parts = Part.objects.filter(part_name__icontains=part_name)
+    else:
+        parts = Part.objects.all()
+    
+    draft_order = get_draft_order()
+    context = {
+        'parts': parts,
+        'part_name': part_name,
+    }
+
+    if draft_order:
+        context["parts_in_processing"] = len(draft_order.get_parts())
+        context["draft_order"] = draft_order
+        context["parts_in_draft_order"] = PartOrder.objects.filter(order=draft_order).values_list('part_id', flat=True)
+    
+    return render(request, 'index.html', context)
+
+def add_part_to_draft_order(request, part_id):
+    part = Part.objects.get(pk=part_id)
+
+    draft_order = get_draft_order()
+
+    if draft_order is None:
+        draft_order = Order.objects.create(
+            creation_date=timezone.now(),
+            owner=get_current_user()
+        )
+        draft_order.save()
+
+    if PartOrder.objects.filter(order=draft_order, part=part).exists():
+        return redirect(f"/?part_name={request.POST.get('part_name', '')}")
+
+    p_o = PartOrder(
+        order=draft_order,
+        part=part
+    )
+    p_o.save()
+
+    return redirect(f"/?part_name={request.POST.get('part_name', '')}")
 
 def part(request, part_id):
-    part = get_part_by_id(part_id)
-    if not part:
-        return render(request, '404.html', status=404)
-    return render(request, "part.html", {'part': part})
+    # Получение детали по id
+    return render(request, "part.html", {'part':  Part.objects.get(id=part_id)})
 
 def orders(request, order_id):
-    order = getOrderById(order_id)  # Получаем заказ
-    return render(request, "orders.html", {"DRAFT_ORDER": order})
-    
+    return render(request, "orders.html", {"order": Order.objects.get(id=order_id)})
 
-def get_part_by_id(part_id):
-    for part in PARTS_DATA:
-        if part['id'] == part_id:
-            return part
-    return None
+def get_draft_order():
+    return Order.objects.filter(status=1).first()
 
-def search_part(part_name):
-    res = []
-    for part in PARTS_DATA:
-        if part_name.lower() in part["name"].lower():
-            res.append(part)
-    return res
+def get_current_user():
+    return User.objects.filter(is_superuser=False).first()
 
-def getOrderById(order_id):
-    return DRAFT_ORDER
+def delete(request, order_id):
+    with connection.cursor() as cursor:
+        cursor.execute("UPDATE orders SET status = 2 WHERE id = %s", [order_id])
+    return redirect("/")

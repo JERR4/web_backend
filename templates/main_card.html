@@ -3,7 +3,16 @@
 <div class="add-section">
     <div class="add-row">
         <div class="add-button">
-            <button class="btn btn-outline-dark btn-sm" type="button">Добавить</button>
+            {% if part.id in parts_in_draft_order %}
+                <button class="btn btn-outline-dark btn-sm" type="button" disabled>Добавлено</button>
+            {% else %}
+            <form method="post" action="/parts/{{ part.id }}/add_to_order/" class="col d-flex justify-content-center">
+                {% csrf_token %}
+                <!-- Скрытое поле для параметра поиска -->
+                <input type="hidden" name="part_name" value="{{ part_name }}">
+                <button class="btn btn-outline-dark btn-sm" type="submit">Добавить</button>
+            </form>
+            {% endif %}
         </div>
     </div>
 </div>

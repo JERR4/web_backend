@@ -2,32 +2,34 @@
 
 <!DOCTYPE html>
 <html lang="en">
-<link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
 <head>
     <meta charset="utf-8">
     <title>Склад комплектующих</title>
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="{% static 'css/bootstrap.css' %}">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg custom-navbar">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/">
-                <img src="{% static 'images/logo.png' %}" alt="Logo" height="40">
-            </a>
-        </div>
-    </nav>
+    <div class="page-wrapper">
+        <nav class="navbar navbar-expand-lg custom-navbar">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">
+                    <img src="{% static 'images/logo.png' %}" alt="Logo" height="40">
+                </a>
+            </div>
+        </nav>
 
-    <div class="container mt-4">
-        {% block content %}
-        {% endblock %}
+        <div class="container mt-4">
+            {% block content %}
+            {% endblock %}
+        </div>
     </div>
 
-    <footer class="custom-footer mt-4">
+    <footer class="custom-footer">
         <div class="container text-center">
-            <p> 2024 Склад комплектующих. Все права защищены.</p>
+            <p>2024 Склад комплектующих. Все права защищены.</p>
         </div>
     </footer>
 
