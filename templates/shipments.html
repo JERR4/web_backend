@@ -8,15 +8,15 @@
                   В обработке
             </span>
             <span>
-                Плановая дата: {{DRAFT_ORDER.planned_date}}
+                Плановая дата: {{DRAFT_SHIPMENT.planned_date}}
             </span>
         </h2>
         
         <div class="delivery-cards">
             <div class="row g-2">
-                {% for part in DRAFT_ORDER.parts%}
+                {% for part in DRAFT_SHIPMENT.parts%}
                     <div class="col-12">
-                        {% include 'order_card.html' with part=part %}
+                        {% include 'layouts/base_card.html' with part=part %}
                     </div>
                 {% endfor %}
             </div>
@@ -24,10 +24,4 @@
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col text-end">
-        <button type="submit" class="btn btn-dark me-2">На доставку</button>
-        <button type="submit" class="btn btn-dark">На отгрузку</button>
-    </div>
-</div>
 {% endblock %}

@@ -5,7 +5,7 @@
     <div class="position-relative mb-3">
         <h2 class="text-center">Комплектующие</h2>
         <div class="position-absolute end-0 top-0">
-            <a href="/orders/{{ DRAFT_ORDER.id }}/" class="w-25 position-relative">
+            <a href="/shipments/{{ draft_shipment_id }}/" class="w-25 position-relative">
                 <button type="submit" class="btn btn-outline-dark">
                     В обработке
                 </button>
@@ -25,7 +25,7 @@
     <div class="row g-2">
         {% for part in parts %}
             <div class="col-md-6">
-                {% include 'main_card.html' %}
+                {% include 'layouts/base_card.html' %}
             </div>
         {% endfor %}
     </div>

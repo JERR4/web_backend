@@ -24,5 +24,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', index),
     path('parts/<int:part_id>/', part),
-    path('orders/<int:order_id>/', orders),
+    path('shipments/<int:shipment_id>/', shipments),
 ]

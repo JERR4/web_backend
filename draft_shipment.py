@@ -1,4 +1,4 @@
-DRAFT_ORDER = {
+DRAFT_SHIPMENT = {
     "id": 123,
     "planned_date": '30.09.2024',
     "parts": [
