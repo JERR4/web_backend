@@ -20,8 +20,8 @@ def part(request, part_id):
     return render(request, "part.html", {'part': part})
 
 def shipments(request, shipment_id):
-    shipment = getOrderById(shipment_id)  # Получаем заказ
-    return render(request, "shipments.html", {"DRAFT_SHIPMENT": shipment})
+    shipment = getShipmentById(shipment_id)  # Получаем заказ
+    return render(request, "shipments.html", {"shipment": shipment})
     
 
 def get_part_by_id(part_id):
@@ -37,5 +37,5 @@ def search_part(part_name):
             res.append(part)
     return res
 
-def getOrderById(shipment_id):
+def getShipmentById(shipment_id):
     return DRAFT_SHIPMENT

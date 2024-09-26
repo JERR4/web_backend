@@ -4,17 +4,39 @@
 <div class="row">
     <div class="col-12">
         <h2 class="d-flex justify-content-between">
-            <span>
-                  В обработке
-            </span>
-            <span>
-                Плановая дата: {{DRAFT_SHIPMENT.planned_date}}
-            </span>
+            <h3>
+                В обработке
+            </h3>
+            <form class="storage-form">
+                <!-- Обертка для названия склада -->
+                <div class="form-group">
+                    <label for="storage_name">Название склада:</label>
+                    <input type="text" id="storage_name" name="storage_name" value="{{ shipment.storage_name }}">
+                </div>
+                
+                <!-- Обертка для плановой даты -->
+                <div class="form-group">
+                    <label for="planned_date">Плановая дата:</label>
+                    <input type="date" id="planned_date" name="planned_date" value="{{ shipment.planned_date }}">
+                </div>
+                
+                <!-- Обертка для типа операции -->
+                <div class="form-group">
+                    <label>Тип операции:</label>
+                    <input type="radio" id="delivery" name="operation_type" value="delivery"
+                        {% if data.operation_type == 'delivery' %}checked{% endif %}>
+                    <label for="delivery">Доставка</label>
+                    
+                    <input type="radio" id="dispatch" name="operation_type" value="dispatch"
+                        {% if data.operation_type == 'dispatch' %}checked{% endif %}>
+                    <label for="dispatch">Отгрузка</label>
+                </div>
+            </form>
         </h2>
         
         <div class="delivery-cards">
             <div class="row g-2">
-                {% for part in DRAFT_SHIPMENT.parts%}
+                {% for part in shipment.parts %}
                     <div class="col-12">
                         {% include 'layouts/base_card.html' with part=part %}
                     </div>
@@ -23,5 +45,4 @@
         </div>
     </div>
 </div>
-
 {% endblock %}
