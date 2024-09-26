@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Part, Order, PartOrder
+from .models import Part, Shipment, PartShipment
 
 @admin.register(Part)
 class PartAdmin(admin.ModelAdmin):
@@ -8,16 +8,16 @@ class PartAdmin(admin.ModelAdmin):
     list_filter = ('status',)
     ordering = ('part_name',)
 
-@admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+@admin.register(Shipment)
+class ShipmentAdmin(admin.ModelAdmin):
     list_display = ('id', 'status', 'creation_date', 'formation_date', 'completion_date', 'owner', 'moderator', 'operation_type')
     search_fields = ('id', 'owner__username', 'moderator__username')
     list_filter = ('status', 'operation_type')
     ordering = ('-creation_date',)
 
-@admin.register(PartOrder)
-class PartOrderAdmin(admin.ModelAdmin):
-    list_display = ('order', 'part', 'quantity')
-    search_fields = ('order__id', 'part__part_name')
-    list_filter = ('order', 'part')
-    ordering = ('order', 'part')
+@admin.register(PartShipment)
+class PartShipmentAdmin(admin.ModelAdmin):
+    list_display = ('shipment', 'part', 'quantity')
+    search_fields = ('shipment__id', 'part__part_name')
+    list_filter = ('shipment', 'part')
+    ordering = ('shipment', 'part')

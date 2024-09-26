@@ -77,11 +77,11 @@ WSGI_APPLICATION = 'bmstu_lab.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'parts_storage', # Имя вашей БД. Если вы создали черезе psql или IDE свою базу и хотите использовать его - пропишите его имя здесь
+        'NAME': 'parts_storage',
         'USER': 'admin',
         'PASSWORD': 'root',
         'HOST': 'localhost',
-        'PORT': 5432, # Стандартный порт PostgreSQL
+        'PORT': 5432, 
     }
 }
 

@@ -9,7 +9,7 @@ class Command(BaseCommand):
             {
                 'part_name': 'ENGINE SHORT',
                 'specification': 'V8 EFI PETROL',
-                'oem_number': 'TF-EXH-2024-001',
+                'oem_number': 'TF-EXH-2024-010',
                 'status': True,
                 'image': 'http://localhost:9000/web/parts/1.jpg',
                 'short_description': 'Engine assembly - Short для V8 EFI PETROL.',

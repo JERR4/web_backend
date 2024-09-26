@@ -1,0 +1,62 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="d-flex justify-content-between">
+            <h3>
+                  В обработке
+            </h3>
+            <form class="storage-form">
+                <!-- Обертка для названия склада -->
+                <div class="form-group">
+                    <label for="storage_name">Название склада:</label>
+                    <input type="text" id="storage_name" name="storage_name">
+                </div>
+                
+                <!-- Обертка для плановой даты -->
+                <div class="form-group">
+                    <label for="planned_date">Плановая дата:</label>
+                    <input type="date" id="planned_date" name="planned_date">
+                </div>
+                
+                <!-- Обертка для типа операции -->
+                <div class="form-group">
+                    <label>Тип операции:</label>
+                    <input type="radio" id="delivery" name="operation_type" value="delivery">
+                    <label for="delivery">Доставка</label>
+                    
+                    <input type="radio" id="dispatch" name="operation_type" value="dispatch">
+                    <label for="dispatch">Отгрузка</label>
+                </div>
+            </form>
+        </h2>
+        
+        <div class="delivery-cards">
+            <div class="row g-2">
+                {% for part in shipment.get_parts%}
+                    <div class="col-12">
+                        {% include 'shipment_card.html' with part=part %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4 mb-4">
+    <!-- Колонка для кнопки "Удалить" выравнена по левому краю -->
+    <div class="col text-start">
+        <form method="post" action="/shipments/{{ shipment.id }}/delete/">
+            {% csrf_token %}
+            <button class="btn btn-danger delete-draft-part-btn" type="submit">
+                Удалить
+            </button>
+        </form>
+    </div>
+
+    <div class="col text-end hide-buttons">
+        <button type="submit" class="btn btn-dark">Отправить</button>
+    </div>    
+</div>
+{% endblock %}

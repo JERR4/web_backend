@@ -1,0 +1,9 @@
+{% extends 'layouts/base_card.html' %}
+{% block content %}
+<div class="quantity-row">
+    <div class="quantity-label">Количество:</div>
+    <div class="quantity-controls">
+        <input type="text" class="form-control mx-2" value={{part.quantity}} style="width: 50px;">
+    </div>
+</div>
+{% endblock %}

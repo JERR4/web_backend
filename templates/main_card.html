@@ -3,10 +3,10 @@
 <div class="add-section">
     <div class="add-row">
         <div class="add-button">
-            {% if part.id in parts_in_draft_order %}
+            {% if part.added %}
                 <button class="btn btn-outline-dark btn-sm" type="button" disabled>Добавлено</button>
             {% else %}
-            <form method="post" action="/parts/{{ part.id }}/add_to_order/" class="col d-flex justify-content-center">
+            <form method="post" action="/parts/{{ part.id }}/add_to_shipment/" class="col d-flex justify-content-center">
                 {% csrf_token %}
                 <!-- Скрытое поле для параметра поиска -->
                 <input type="hidden" name="part_name" value="{{ part_name }}">

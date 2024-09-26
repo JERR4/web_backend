@@ -6,7 +6,7 @@
         <h2 class="text-center">Комплектующие</h2>
         {% if parts_in_processing > 0 %}
             <div class="position-absolute end-0 top-0">
-                <a href="/orders/{{ draft_order.id }}/" class="w-25 position-relative">
+                <a href="/shipments/{{ draft_shipment.id }}/" class="w-25 position-relative">
                     <button type="submit" class="btn btn-outline-dark">
                         В обработке
                     </button>

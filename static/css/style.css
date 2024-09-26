@@ -128,6 +128,11 @@ input[type="text"] {
   text-align: center;
 }
 
+.hide-buttons {
+  display: none;
+}
+
+
                                                               /*index.html */
 
 .search-panel {
@@ -191,4 +196,41 @@ input[type="text"] {
 
 .in-part-info-details p {
   margin: 0;
+}
+
+                                                              /*shipments.html */
+.storage-form {
+  margin-bottom: 10px;
+  font-family: "Inter", "Source Sans Pro", "Helvetica";
+}
+
+.storage-form {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.form-group {
+  display: flex;
+  align-items: center;
+  margin-right: 40px;
+}
+
+.form-group label {
+  margin-right: 10px;
+  font-weight: 600; 
+}
+
+label[for="delivery"], 
+label[for="dispatch"] {
+  font-weight: normal;
+}
+
+.form-group input[type="radio"] {
+  margin-right: 5px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="date"] {
+  text-align: left;
+  height: 25px;
 }
