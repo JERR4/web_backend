@@ -19,7 +19,7 @@ body {
 
 /* Стили для навигационной панели и футера */
 .custom-navbar {
-  background-color: #212539; /* Замените на нужный вам цвет */
+  background-color: #212539; 
 }
 
 .btn-outline-dark {

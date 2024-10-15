@@ -100,21 +100,6 @@ class Command(BaseCommand):
 8. Nutsert-blind''',
                 'dimensions': '200 см х 30 см х 10 см',
                 'weight': 10,
-            },
-            {
-                'part_name': 'FRAME ASSEMBLY',
-                'specification': 'V8 EFI PETROL',
-                'oem_number': 'DX-EXH-2024-006',
-                'status': True,
-                'image': 'http://localhost:9000/web/parts/6.jpg',
-                'short_description': 'Frame assembly для V8 EFI PETROL.',
-                'set_composition': '''1. Frame assembly-chassis
-2. Crossmember-gearbox support
-3. Crossmember-front
-4. Screw-flanged head
-5. Nut-flange''',
-                'dimensions': '300 см х 100 см х 50 см',
-                'weight': 120,
             }
         ]
 

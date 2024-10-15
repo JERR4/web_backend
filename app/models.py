@@ -41,7 +41,7 @@ class Shipment(models.Model):
     formation_date = models.DateTimeField(verbose_name="Дата формирования", blank=True, null=True)
     planned_date = models.DateField(verbose_name="Дата запланированного завершения", blank=True, null=True)
     completion_date = models.DateTimeField(verbose_name="Дата завершения", blank=True, null=True)
-    
+    storage = models.CharField(max_length=50, verbose_name="Название склада", blank=True, null=True)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь", null=True, related_name='owner')
     moderator = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Модератор", null=True, related_name='moderator')
     operation_type = models.BooleanField(choices=OPERATION_TYPE_CHOICES, null=True, blank=True, verbose_name="Тип операции")
