@@ -2,22 +2,23 @@ from rest_framework import serializers
 from .models import *
 
 class PartSerializer(serializers.ModelSerializer):
+    active_add = serializers.SerializerMethodField()
+
+    def get_active_add(self, part):
+        has_shipment = PartShipment.objects.filter(part=part, shipment__status=1).exists()
+        return not has_shipment
+
     class Meta:
         model = Part
         fields = '__all__'
 
 class ShipmentSerializer(serializers.ModelSerializer):
-    parts = serializers.SerializerMethodField()
+    parts_amount = serializers.SerializerMethodField()
     owner = serializers.SerializerMethodField()
     moderator = serializers.SerializerMethodField()
 
-    def get_parts(self, shipment):
-        # Получаем все связи между частями и отправками
-        part_shipments = PartShipment.objects.filter(shipment=shipment)
-        parts = [part_shipment.part for part_shipment in part_shipments]  # Извлекаем детали
-        serializer = PartSerializer(parts, many=True)
-        return serializer.data
-    
+    def get_parts_amount(self,shipment):
+        return PartShipment.objects.filter(shipment=shipment).count()
     def get_owner(self, shipment):
         return shipment.owner.username
 

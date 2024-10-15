@@ -18,7 +18,7 @@ def add_pic(new_part, pic):
            secure=settings.MINIO_USE_SSL
     )
     i = new_part.id
-    img_obj_name = f"{i}.png"
+    img_obj_name = f"{i}.jpg"
 
     if not pic:
         return Response({"error": "Нет файла для изображения логотипа."})

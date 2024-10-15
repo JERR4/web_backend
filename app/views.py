@@ -59,16 +59,7 @@ def create_part(request):
     
     serializer = PartSerializer(data=part_data)
     serializer.is_valid(raise_exception=True)  # Проверка валидности с автоматической обработкой ошибок
-
     new_part = serializer.save()  # Сохраняем новую деталь
-
-    # Загружаем изображение, если оно есть в запросе
-    pic = request.FILES.get("image")
-    if pic:
-        pic_result = add_pic(new_part, pic)
-        if 'error' in pic_result.data:
-            return pic_result  # Возвращаем ошибку, если загрузка изображения не удалась
-
     # Обновляем и возвращаем данные с новой деталью
     return Response(PartSerializer(new_part).data, status=status.HTTP_201_CREATED)
 
@@ -298,22 +289,29 @@ def delete_shipment(request, shipment_id):
 
 # DELETE удаление из заявки (без PK м-м)
 @api_view(["DELETE"])
-def delete_part_from_shipment(request, part_shipment_id, shipment_id):
-    if not PartShipment.objects.filter(pk=part_shipment_id).exists():
-        return Response(status=status.HTTP_404_NOT_FOUND)
+def delete_part_from_shipment(request, part_shipment_id):
+    try:
+        part_shipment = PartShipment.objects.get(pk=part_shipment_id)
+    except PartShipment.DoesNotExist:
+        return Response({"Ошибка": "Связь между деталью и отправкой не найдена"}, status=status.HTTP_404_NOT_FOUND)
 
-    part_shipment = PartShipment.objects.get(pk=part_shipment_id)
+    # Сохраняем ID отправки перед удалением связи
+    shipment_id = part_shipment.shipment_id
+
+    # Удаляем связь между деталью и отправкой
     part_shipment.delete()
 
-    shipment = Shipment.objects.get(pk=shipment_id)
+    # Обновляем данные отправки
+    try:
+        shipment = Shipment.objects.get(pk=shipment_id)
+    except Shipment.DoesNotExist:
+        return Response({"Ошибка": "Отправка не найдена после удаления детали"}, status=status.HTTP_404_NOT_FOUND)
 
+    # Сериализуем обновлённую отправку
     serializer = ShipmentSerializer(shipment, many=False)
-    parts_serializer = PartShipmentSerializer(shipment.parts.all(), many=True)
 
-    return Response(
-        {"shipment": serializer.data, "parts": parts_serializer.data},
-        status=status.HTTP_200_OK
-    )
+    # Возвращаем обновлённые данные отправки
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 #PUT изменение количества/порядка/значения в м-м (без PK м-м)
 
@@ -336,22 +334,23 @@ def update_part_shipment(request, part_shipment_id):
 
 
 #POST регистрация
-
 @api_view(["POST"])
 def register(request):
     serializer = UserRegisterSerializer(data=request.data)
 
+    # Проверка валидности данных
     if not serializer.is_valid():
-        return Response(status=status.HTTP_409_CONFLICT)
+        return Response({"Ошибка": "Некорректные данные"}, status=status.HTTP_400_BAD_REQUEST)
 
+
+    # Сохранение нового пользователя
     user = serializer.save()
 
+    # Сериализация и возврат данных нового пользователя
     serializer = UserSerializer(user)
-
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 #PUT пользователя (личный кабинет)
-
 @api_view(["PUT"])
 def update_user(request, user_id):
     if not User.objects.filter(pk=user_id).exists():

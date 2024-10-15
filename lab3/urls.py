@@ -31,7 +31,7 @@ urlpatterns = [
     path('api/parts/<int:part_id>/update/', update_part, name='update_part'),  # PUT
     path('api/parts/<int:part_id>/delete/', delete_part, name='delete_part'),  # DELETE
     path('api/parts/<int:part_id>/add_to_shipment/',add_part_to_shipment, name='add_part_to_shipment'),  # POST
-    path('api/parts/<int:part_id>/update_image/', update_part_image, name='update_part_image'),  # PUT
+    path('api/parts/<int:part_id>/update_image/', update_part_image, name='update_image'),  # POST
 
     # Набор методов для заявок
     path('api/shipments/search/',  get_shipments_list, name=' get_shipments_list'),  # GET
@@ -42,8 +42,8 @@ urlpatterns = [
     path('api/shipments/<int:shipment_id>/delete/', delete_shipment, name='delete_shipment'),  # DELETE
 
     # Набор методов для м-м
-    path('api/part_shipments/<int:part_shipment_id>/', update_part_shipment, name='update_part_shipment'),  # PUT
-    path('api/part_shipments/<int:part_shipment_id>/', delete_part_from_shipment, name='update_part_shipment'),  # DELETE
+    path('api/part_shipments/<int:part_shipment_id>/update_part_shipment/', update_part_shipment, name='update_part_shipment'),  # PUT
+    path('api/part_shipments/<int:part_shipment_id>/delete_part_from_shipment/', delete_part_from_shipment, name='delete_part_from_shipment'),  # DELETE
 
     # Набор методов пользователей
     path('api/users/register/', register, name='register'),  # POST
