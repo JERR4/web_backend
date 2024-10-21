@@ -1,5 +1,5 @@
 """
-URL configuration for lab3 project.
+URL configuration for book_office_project project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.1/topics/http/urls/
@@ -14,17 +14,34 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
-from app.views import *
-from django.urls import include, path
-from rest_framework import routers
 
-router = routers.DefaultRouter()
+from django.contrib import admin
+from django.urls import path
+
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+from rest_framework import permissions
+from app.views import *
+
+schema_view = get_schema_view(
+    openapi.Info(
+        title="Parts storage API",
+        default_version="v1",
+        description="API for parts storage",
+        contact=openapi.Contact(email="yaroslav.auto@gmail.com"),
+        license=openapi.License(name="BSD License"),
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
 
 urlpatterns = [
-    path('app/', include(router.urls)),
-    path('admin/', admin.site.urls),
-
+    path("admin/", admin.site.urls),
+    path(
+        "swagger/",
+        schema_view.with_ui("swagger", cache_timeout=0),
+        name="schema-swagger-ui",
+    ),
     path('api/parts/search/', get_parts_list, name='get_parts_list'),  # GET
     path('api/parts/<int:part_id>/',get_part_by_id, name='get_part_by_id'),  # GET
     path('api/parts/create/', create_part, name='create_part'),  # POST
@@ -49,5 +66,5 @@ urlpatterns = [
     path('api/users/register/', register, name='register'),  # POST
     path('api/users/login/', login, name='login'),  # POST
     path('api/users/logout/', logout, name='logout'),  # POST
-    path('api/users/<int:user_id>/update/', update_user, name='update_user'),  # PUT
+    path('api/users/update/', update_user, name='update_user'),  # PUT
 ]

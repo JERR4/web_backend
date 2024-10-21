@@ -7,30 +7,69 @@ from rest_framework.decorators import api_view
 from django.utils import timezone
 from django.contrib.auth import authenticate
 from .minio import *
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from rest_framework.decorators import (
+    api_view,
+    permission_classes,
+    authentication_classes,
+    parser_classes,
+)
+from rest_framework.permissions import AllowAny
+from .authorization import *
+from .redis import session_storage
+from rest_framework.parsers import FormParser
+import uuid
 
-
-def get_draft_shipment():
-    return Shipment.objects.filter(status=1).first()
-
-def get_user():
-    return User.objects.filter(is_superuser=False).first()
-
-
-def get_moderator():
-    return User.objects.filter(is_superuser=True).first()
+@swagger_auto_schema(
+    method="get",
+    manual_parameters=[
+        openapi.Parameter(
+            "part_name",
+            openapi.IN_QUERY,
+            description="Фильтрация по частичному совпадению имени детали",
+            type=openapi.TYPE_STRING,
+        ),
+    ],
+    responses={
+        status.HTTP_200_OK: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "parts": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(type=openapi.TYPE_OBJECT),
+                    description="Список найденных деталей",
+                ),
+                "draft_shipment": openapi.Schema(
+                    type=openapi.TYPE_NUMBER,
+                    description="ID черновика отправки, если существует",
+                    nullable=True,
+                ),
+            },
+        ),
+        status.HTTP_400_BAD_REQUEST: "Неверный запрос",
+        status.HTTP_403_FORBIDDEN: "Доступ запрещен",
+    },
+)
 
 # GET список. В списке услуг возвращается id заявки-черновика этого пользователя для страницы заявки в статусе черновик
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
+@authentication_classes([AuthBySessionIDIfExists])
 def get_parts_list(request):
     part_name = request.GET.get("part_name", "")
-
+    
     parts = Part.objects.filter(status=True).filter(part_name__icontains=part_name)
-
     serializer = PartSerializer(parts, many=True)
-
-    draft_shipment = get_draft_shipment()
-
+    
+    draft_shipment = None
+    if request.user.is_authenticated:
+        try:
+            draft_shipment = Shipment.objects.get(status=1, owner=request.user)
+        except Shipment.DoesNotExist:
+            draft_shipment = None
+    
     response = {
         "parts": serializer.data,
         "draft_shipment": draft_shipment.pk if draft_shipment else None
@@ -38,8 +77,28 @@ def get_parts_list(request):
 
     return Response(response, status=status.HTTP_200_OK)
 
+@swagger_auto_schema(
+    method="get",
+    manual_parameters=[
+        openapi.Parameter(
+            name="part_id",
+            in_=openapi.IN_PATH,
+            type=openapi.TYPE_INTEGER,
+            description="ID искомой детали"
+        )
+    ],
+    responses={
+        status.HTTP_200_OK: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            description="Деталь, найденная по ID",
+        ),
+        status.HTTP_404_NOT_FOUND: "Деталь не найдена",
+    },
+)
+
 # GET одна запись
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def get_part_by_id(request, part_id):
     try:
         part = Part.objects.get(pk=part_id)
@@ -50,45 +109,94 @@ def get_part_by_id(request, part_id):
 
     return Response(serializer.data)
 
+@swagger_auto_schema(
+    method="post",
+    request_body=CreateUpdatePartSerializer,
+    responses={
+        status.HTTP_201_CREATED: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            description="Созданная деталь",
+        ),
+        status.HTTP_400_BAD_REQUEST: "Неверные данные",
+        status.HTTP_403_FORBIDDEN: "Вы не вошли в систему как модератор",
+    },
+)
+
 # POST добавление
 @api_view(["POST"])
+@permission_classes([IsManagerAuth])
 def create_part(request):
-    # Извлекаем данные, исключая поле image
     part_data = request.data.copy()
-    part_data.pop('image', None)  # Удаляем image из данных, если оно есть
+    part_data.pop('image', None)
     
-    serializer = PartSerializer(data=part_data)
-    serializer.is_valid(raise_exception=True)  # Проверка валидности с автоматической обработкой ошибок
-    new_part = serializer.save()  # Сохраняем новую деталь
-    # Обновляем и возвращаем данные с новой деталью
+    serializer = CreateUpdatePartSerializer(data=part_data)
+    serializer.is_valid(raise_exception=True)
+    new_part = serializer.save()
     return Response(PartSerializer(new_part).data, status=status.HTTP_201_CREATED)
 
+@swagger_auto_schema(
+    method="put",
+    request_body=CreateUpdatePartSerializer,
+    manual_parameters=[
+        openapi.Parameter(
+            name="part_id",
+            in_=openapi.IN_PATH,
+            type=openapi.TYPE_INTEGER,
+            description="ID обновляемой детали"
+        )
+    ],
+    responses={
+        status.HTTP_200_OK: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            description="Обновленные данные детали",
+        ),
+        status.HTTP_403_FORBIDDEN: "Вы не вошли в систему как модератор",
+        status.HTTP_404_NOT_FOUND: "Деталь не найдена",
+        status.HTTP_400_BAD_REQUEST: "Неверные данные",
+    },
+)
+
 @api_view(["PUT"])
+@permission_classes([IsManagerAuth])
 def update_part(request, part_id):
     try:
         part = Part.objects.get(pk=part_id)
     except Part.DoesNotExist:
         return Response({"Ошибка": "Деталь не найдена"}, status=status.HTTP_404_NOT_FOUND)
 
-    # Извлекаем данные, исключая поле image
     part_data = request.data.copy()
-    part_data.pop('image', None)  # Удаляем image из данных, если оно есть
+    part_data.pop('image', None) 
 
-    serializer = PartSerializer(part, data=part_data, partial=True)
-    serializer.is_valid(raise_exception=True)  # Проверка валидности с автоматической обработкой ошибок
-    updated_part = serializer.save()  # Сохраняем обновлённую деталь
-    # Обработка изменения изображения, если оно предоставлено
-    pic = request.FILES.get("image")
-    if pic:
-        pic_result = add_pic(updated_part, pic)
-        if 'error' in pic_result.data:
-            return pic_result  # Возвращаем ошибку, если загрузка изображения не удалась
+    serializer = CreateUpdatePartSerializer(part, data=part_data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    updated_part = serializer.save()
 
-    # Возвращаем обновлённые данные детали
     return Response(PartSerializer(updated_part).data, status=status.HTTP_200_OK)
+
+@swagger_auto_schema(
+    method="delete",
+    manual_parameters=[
+        openapi.Parameter(
+            name="part_id",
+            in_=openapi.IN_PATH,
+            type=openapi.TYPE_INTEGER,
+            description="ID удаляемой детали"
+        )
+    ],
+    responses={
+        status.HTTP_200_OK: openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Schema(type=openapi.TYPE_OBJECT),
+            description="Обновленный список деталей после удаления",
+        ),
+        status.HTTP_403_FORBIDDEN: "Вы не вошли в систему как модератор",
+        status.HTTP_404_NOT_FOUND: "Деталь не найдена",
+    },
+)
 
 # DELETE удаление. Удаление изображения встроено в метод удаления услуги
 @api_view(["DELETE"])
+@permission_classes([IsManagerAuth])
 def delete_part(request, part_id):
     try:
         part = Part.objects.get(pk=part_id)
@@ -102,44 +210,92 @@ def delete_part(request, part_id):
     serializer = PartSerializer(parts, many=True)
     return Response(serializer.data)
 
+@swagger_auto_schema(
+    method="post",
+    manual_parameters=[
+        openapi.Parameter(
+            name="part_id",
+            in_=openapi.IN_PATH,
+            type=openapi.TYPE_INTEGER,
+            description="ID детали, добавляемой в отправку"
+        )
+    ],
+    responses={
+        status.HTTP_201_CREATED: openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Schema(type=openapi.TYPE_OBJECT),
+            description="Обновленный список деталей в отправке-черновике",
+        ),
+        status.HTTP_404_NOT_FOUND: "Деталь не найдена",
+        status.HTTP_400_BAD_REQUEST: "Деталь уже добавлена в черновик",
+        status.HTTP_403_FORBIDDEN: "Вы не вошли в систему",
+        status.HTTP_500_INTERNAL_SERVER_ERROR: "Ошибка при создании связки",
+    },
+)
+
 #POST добавления в заявку-черновик. Заявка создается пустой, указывается автоматически создатель, дата создания и статус, 
 # остальные поля указываются через PUT или смену статуса
 
 @api_view(["POST"])
+@permission_classes([IsAuth])
+@authentication_classes([AuthBySessionID])
 def add_part_to_shipment(request, part_id):
     try:
         part = Part.objects.get(pk=part_id)
     except Part.DoesNotExist:
         return Response({"error": "Деталь не найдена"}, status=status.HTTP_404_NOT_FOUND)
 
-    draft_shipment = get_draft_shipment()
+    draft_shipment, created = Shipment.objects.get_or_create(
+        status=1,
+        owner=request.user,
+        defaults={'creation_date': timezone.now()}
+    )
 
-    if draft_shipment is None:
-        draft_shipment = Shipment.objects.create(
-            owner=get_user(),
-            creation_date=timezone.now()
-        )
-        draft_shipment.save()
-
-    # Проверяем наличие связки детали и черновика, чтобы не дублировать её
     if PartShipment.objects.filter(shipment=draft_shipment, part=part).exists():
-        return Response({"error": "Деталь уже добавлена в черновик"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return Response({"error": "Деталь уже добавлена в черновик"}, status=status.HTTP_400_BAD_REQUEST)
     
-    # Создаем связку между деталью и отправкой
     try:
-        part_shipment = PartShipment.objects.create(
+        PartShipment.objects.create(
             shipment=draft_shipment,
             part=part
         )
     except Exception as e:
         return Response({"error": f"Ошибка при создании связки: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    # Сериализуем черновик и возвращаем ответ
     serializer = ShipmentSerializer(draft_shipment)
-    return Response(serializer.data.get("ships", []), status=status.HTTP_200_OK)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@swagger_auto_schema(
+    method="post",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "image": openapi.Schema(type=openapi.TYPE_FILE, description="Новое изображение для детали"),
+        },
+        required=["image"]
+    ),
+    manual_parameters=[
+        openapi.Parameter(
+            name="part_id",
+            in_=openapi.IN_PATH,
+            type=openapi.TYPE_INTEGER,
+            description="ID детали, для которой загружается/изменяется изображение"
+        )
+    ],
+    responses={
+        status.HTTP_200_OK: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            description="Обновленная информация о детали с новым изображением",
+        ),
+        status.HTTP_400_BAD_REQUEST: "Изображение не предоставлено",
+        status.HTTP_403_FORBIDDEN: "Вы не вошли в систему как модератор",
+        status.HTTP_404_NOT_FOUND: "Деталь не найдена",
+    },
+)
 
 # POST добавление изображения. Добавление изображения по id услуги, старое изображение заменяется/удаляется
 @api_view(["POST"])
+@permission_classes([IsManagerAuth])
 def update_part_image(request, part_id):
     try:
         part = Part.objects.get(pk=part_id)
@@ -149,25 +305,58 @@ def update_part_image(request, part_id):
     image = request.FILES.get("image")
     
     if image is not None:
-        # Заменяем старое изображение
-        pic_result = add_pic(part, image)  # Используем функцию add_pic для загрузки нового изображения
+        pic_result = add_pic(part, image)
         if 'error' in pic_result.data:
-            return pic_result  # Если произошла ошибка, возвращаем её
+            return pic_result 
         
-        serializer = PartSerializer(part)  # Обновляем сериализатор
+        serializer = PartSerializer(part)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     return Response({"Ошибка": "Изображение не предоставлено"}, status=status.HTTP_400_BAD_REQUEST)
 
+@swagger_auto_schema(
+    method="get",
+    manual_parameters=[
+        openapi.Parameter(
+            name="status",
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_INTEGER,
+            description="Фильтр по статусу отправки",
+        ),
+        openapi.Parameter(
+            name="date_formation_start",
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_DATETIME,
+            description="Начальная дата формирования (формат: YYYY-MM-DDTHH:MM:SS)",
+        ),
+        openapi.Parameter(
+            name="date_formation_end",
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_DATETIME,
+            description="Конечная дата формирования (формат: YYYY-MM-DDTHH:MM:SS)",
+        ),
+    ],
+    responses={
+        status.HTTP_200_OK: ShipmentSerializer(many=True),
+        status.HTTP_400_BAD_REQUEST: "Некорректный запрос",
+        status.HTTP_403_FORBIDDEN: "Вы не вошли в систему",
+    },
+)
+
 # GET список (кроме удаленных и черновика, модератор и создатель через логины)
 @api_view(["GET"])
+@permission_classes([IsAuth])
+@authentication_classes([AuthBySessionID])
 def get_shipments_list(request):
     status = int(request.GET.get("status", 0))
     date_formation_start = request.GET.get("date_formation_start")
     date_formation_end = request.GET.get("date_formation_end")
 
     shipments = Shipment.objects.exclude(status__in=[1, 2])
-
+    if not request.user.is_superuser:
+        shipments = shipments.filter(owner=request.user)
     if status > 0:
         shipments = shipments.filter(status=status)
 
@@ -181,26 +370,88 @@ def get_shipments_list(request):
 
     return Response(serializer.data)
 
+@swagger_auto_schema(
+    method="get",
+    manual_parameters=[
+        openapi.Parameter(
+            name="shipment_id",
+            in_=openapi.IN_PATH,
+            type=openapi.TYPE_INTEGER,
+            description="ID искомой отправки",
+        ),
+    ],
+    responses={
+        status.HTTP_200_OK: ShipmentSerializer(),
+        status.HTTP_403_FORBIDDEN: "Вы не вошли в систему",
+        status.HTTP_404_NOT_FOUND: "Отправка не найдена",
+    },
+)
+
 # GET одна запись (поля заявки + ее услуги). При получении заявки возвращается список ее услуг с картинками
 @api_view(["GET"])
+@permission_classes([IsAuth])
+@authentication_classes([AuthBySessionID])
 def get_shipment_by_id(request, shipment_id):
     try:
         shipment = Shipment.objects.get(pk=shipment_id)
     except Shipment.DoesNotExist:
         return Response({"Ошибка": "Отправка не найдена"}, status=status.HTTP_404_NOT_FOUND)
 
+    if not request.user.is_superuser and shipment.owner != request.user:
+        return Response(status=status.HTTP_403_FORBIDDEN)
     serializer = ShipmentSerializer(shipment, many=False)
 
     return Response(serializer.data)
 
+@swagger_auto_schema(
+    method="put",
+    manual_parameters=[
+        openapi.Parameter(
+            name="shipment_id",
+            in_=openapi.IN_PATH,
+            type=openapi.TYPE_INTEGER,
+            description="ID изменяемой заявки",
+        )
+    ],
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "planned_date": openapi.Schema(
+                type=openapi.TYPE_STRING,
+                format=openapi.FORMAT_DATETIME,
+                description="Запланированная дата отправки (формат: YYYY-MM-DDTHH:MM:SS)",
+            ),
+            "storage": openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description="Название склада, с которого будет произведена отправка",
+            ),
+            "operation_type": openapi.Schema(
+                type=openapi.TYPE_STRING,
+                description="Тип отправки (доставка/отгрузка)",
+            ),
+        },
+    ),
+    responses={
+        status.HTTP_200_OK: ShipmentSerializer(),
+        status.HTTP_400_BAD_REQUEST: "Нет данных для обновления или поля не разрешены",
+        status.HTTP_403_FORBIDDEN: "Доступ запрещен",
+        status.HTTP_404_NOT_FOUND: "Отправка не найдена",
+    },
+)
+
 # PUT изменение доп. полей заявки
 @api_view(["PUT"])
+@permission_classes([IsAuth])
+@authentication_classes([AuthBySessionID])
 def update_shipment(request, shipment_id):
     try:
         shipment = Shipment.objects.get(pk=shipment_id)
     except Shipment.DoesNotExist:
         return Response({"Ошибка": "Отправка не найдена"}, status=status.HTTP_404_NOT_FOUND)
 
+    if not request.user.is_superuser and shipment.owner != request.user:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+    
     allowed_fields = ['planned_date', 'storage', 'operation_type']
 
     data = {key: value for key, value in request.data.items() if key in allowed_fields}
@@ -216,14 +467,38 @@ def update_shipment(request, shipment_id):
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@swagger_auto_schema(
+    method="put",
+    manual_parameters=[
+        openapi.Parameter(
+            name="shipment_id",
+            in_=openapi.IN_PATH,
+            type=openapi.TYPE_INTEGER,
+            description="ID отправки, формируемой создателем",
+        ),
+    ],
+    responses={
+        status.HTTP_200_OK: ShipmentSerializer(),
+        status.HTTP_400_BAD_REQUEST: "Не заполнены обязательные поля: [поля, которые не заполнены]",
+        status.HTTP_403_FORBIDDEN: "Доступ запрещен",
+        status.HTTP_404_NOT_FOUND: "Отправка не найдена",
+        status.HTTP_405_METHOD_NOT_ALLOWED: "Отправка не в статусе 'Черновик'",
+    },
+)
+
 # PUT сформировать создателем. Происходит проверка на обязательные поля
 @api_view(["PUT"])
+@permission_classes([IsAuth])
+@authentication_classes([AuthBySessionID])
 def update_status_user(request, shipment_id):
     try:
         shipment = Shipment.objects.get(pk=shipment_id)
     except Shipment.DoesNotExist:
         return Response({"Ошибка": "Отправка не найдена"}, status=status.HTTP_404_NOT_FOUND)
 
+    if not request.user.is_superuser and shipment.owner != request.user:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+    
     if shipment.status != 1:
         return Response({"Ошибка": "Отправку нельзя изменить, так как она не в статусе 'Черновик'"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
@@ -244,8 +519,38 @@ def update_status_user(request, shipment_id):
     serializer = ShipmentSerializer(shipment, many=False)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+@swagger_auto_schema(
+    method="put",
+    manual_parameters=[
+        openapi.Parameter(
+            name="shipment_id",
+            in_=openapi.IN_PATH,
+            type=openapi.TYPE_INTEGER,
+            description="ID заявки, обрабатываемой модератором",
+        ),
+    ],
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "status": openapi.Schema(
+                type=openapi.TYPE_INTEGER,
+                description="Новый статус отправки (4 для завершения, 5 для отклонения)",
+            ),
+        },
+        required=["status"],
+    ),
+    responses={
+        status.HTTP_200_OK: ShipmentSerializer(),
+        status.HTTP_403_FORBIDDEN: "Вы не вошли в систему как модератор",
+        status.HTTP_404_NOT_FOUND: "Отправка не найдена",
+        status.HTTP_405_METHOD_NOT_ALLOWED: "Отправка не статусе 'Сформирована'",
+    },
+)
+
 # PUT завершить/отклонить модератором
 @api_view(["PUT"])
+@permission_classes([IsManagerAuth])
+@authentication_classes([AuthBySessionID])
 def update_status_admin(request, shipment_id):
     try:
         shipment = Shipment.objects.get(pk=shipment_id)
@@ -258,25 +563,48 @@ def update_status_admin(request, shipment_id):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     if shipment.status != 3:
-        return Response({"Ошибка": "Отправка ещё не сформирована"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return Response({"Ошибка": "Отправка не статусе 'Сформирована'"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     shipment.completion_date = timezone.now()
     shipment.status = request_status
-    shipment.moderator = get_moderator()
+    shipment.moderator = request.user
     shipment.save()
 
     serializer = ShipmentSerializer(shipment, many=False)
 
     return Response(serializer.data)
 
+@swagger_auto_schema(
+    method="delete",
+    manual_parameters=[
+        openapi.Parameter(
+            name="shipment_id",
+            in_=openapi.IN_PATH,
+            type=openapi.TYPE_INTEGER,
+            description="ID удаляемой отправки",
+        ),
+    ],
+    responses={
+        status.HTTP_200_OK: ShipmentSerializer(),
+        status.HTTP_403_FORBIDDEN: "Доступ запрещен",
+        status.HTTP_404_NOT_FOUND: "Отправка не найдена",
+        status.HTTP_405_METHOD_NOT_ALLOWED: "Удаление возможно только для отправки в статусе 'Черновик'",
+    },
+)
+
 # DELETE удаление
 @api_view(["DELETE"])
+@permission_classes([IsAuth])
+@authentication_classes([AuthBySessionID])
 def delete_shipment(request, shipment_id):
     try:
         shipment = Shipment.objects.get(pk=shipment_id)
     except Shipment.DoesNotExist:
         return Response({"Ошибка": "Отправка не найдена"}, status=status.HTTP_404_NOT_FOUND)
 
+    if not request.user.is_superuser and shipment.owner != request.user:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+    
     if shipment.status != 1:
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
@@ -287,41 +615,94 @@ def delete_shipment(request, shipment_id):
 
     return Response(serializer.data)
 
+@swagger_auto_schema(
+    method="delete",
+    manual_parameters=[
+        openapi.Parameter(
+            name="part_shipment_id",
+            in_=openapi.IN_PATH,
+            type=openapi.TYPE_INTEGER,
+            description="ID связи между деталью и отправкой, которую нужно удалить"
+        ),
+    ],
+    responses={
+        status.HTTP_200_OK: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            description="Обновлённые данные отправки после удаления детали",
+        ),
+        status.HTTP_403_FORBIDDEN: "Доступ запрещен",
+        status.HTTP_404_NOT_FOUND: "Связь между деталью и отправкой не найдена",
+    },
+)
+
 # DELETE удаление из заявки (без PK м-м)
 @api_view(["DELETE"])
+@permission_classes([IsAuth])
+@authentication_classes([AuthBySessionID])
 def delete_part_from_shipment(request, part_shipment_id):
     try:
         part_shipment = PartShipment.objects.get(pk=part_shipment_id)
     except PartShipment.DoesNotExist:
         return Response({"Ошибка": "Связь между деталью и отправкой не найдена"}, status=status.HTTP_404_NOT_FOUND)
 
-    # Сохраняем ID отправки перед удалением связи
-    shipment_id = part_shipment.shipment_id
-
-    # Удаляем связь между деталью и отправкой
+    shipment = Shipment.objects.get(pk=part_shipment.shipment_id)
+    if not request.user.is_superuser and shipment.owner != request.user:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+    
     part_shipment.delete()
 
-    # Обновляем данные отправки
-    try:
-        shipment = Shipment.objects.get(pk=shipment_id)
-    except Shipment.DoesNotExist:
-        return Response({"Ошибка": "Отправка не найдена после удаления детали"}, status=status.HTTP_404_NOT_FOUND)
-
-    # Сериализуем обновлённую отправку
     serializer = ShipmentSerializer(shipment, many=False)
 
-    # Возвращаем обновлённые данные отправки
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@swagger_auto_schema(
+    method="put",
+    manual_parameters=[
+        openapi.Parameter(
+            name="part_shipment_id",
+            in_=openapi.IN_PATH,
+            type=openapi.TYPE_INTEGER,
+            description="ID связи между деталью и отправкой, которую нужно обновить"
+        ),
+    ],
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            "quantity": openapi.Schema(
+                type=openapi.TYPE_INTEGER,
+                description="Новое количество деталей"
+            ),
+        },
+        required=["quantity"],
+        description="Обновлённые данные отправки детали"
+    ),
+    responses={
+        status.HTTP_200_OK: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            description="Обновлённые данные отправки детали",
+        ),
+        status.HTTP_403_FORBIDDEN: "Доступ запрещен",
+        status.HTTP_404_NOT_FOUND: "Отправка детали не найдена",
+        status.HTTP_400_BAD_REQUEST: "Количество не предоставлено",
+    },
+)
 
 #PUT изменение количества/порядка/значения в м-м (без PK м-м)
 
 @api_view(["PUT"])
+@permission_classes([IsAuth])
+@authentication_classes([AuthBySessionID])
 def update_part_shipment(request, part_shipment_id):
     try:
         part_shipment = PartShipment.objects.get(pk=part_shipment_id)
     except PartShipment.DoesNotExist:
-        return Response({"Ошибка": "Отгрузка детали не найдена"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"Ошибка": "Отправка детали не найдена"}, status=status.HTTP_404_NOT_FOUND)
 
+
+    shipment = Shipment.objects.get(pk=part_shipment.shipment_id)
+    if not request.user.is_superuser and shipment.owner != request.user:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+    
     quantity = request.data.get("quantity")
 
     if quantity is not None:
@@ -332,56 +713,97 @@ def update_part_shipment(request, part_shipment_id):
 
     return Response({"Ошибка": "Количество не предоставлено"}, status=status.HTTP_400_BAD_REQUEST)
 
-
-#POST регистрация
+@swagger_auto_schema(
+    method="post",
+    request_body=UserSerializer,
+    responses={
+        status.HTTP_201_CREATED: "Created",
+        status.HTTP_400_BAD_REQUEST: "Bad Request",
+    },
+)
 @api_view(["POST"])
+@permission_classes([AllowAny])
 def register(request):
-    serializer = UserRegisterSerializer(data=request.data)
+    serializer = UserSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    # Проверка валидности данных
-    if not serializer.is_valid():
-        return Response({"Ошибка": "Некорректные данные"}, status=status.HTTP_400_BAD_REQUEST)
 
-
-    # Сохранение нового пользователя
-    user = serializer.save()
-
-    # Сериализация и возврат данных нового пользователя
-    serializer = UserSerializer(user)
-    return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-#PUT пользователя (личный кабинет)
-@api_view(["PUT"])
-def update_user(request, user_id):
-    if not User.objects.filter(pk=user_id).exists():
-        return Response(status=status.HTTP_404_NOT_FOUND)
-
-    user = User.objects.get(pk=user_id)
-    serializer = UserSerializer(user, data=request.data, many=False, partial=True)
-
-    if not serializer.is_valid():
-        return Response(status=status.HTTP_409_CONFLICT)
-
-    serializer.save()
-
-    return Response(serializer.data)
-
-#POST аутентификация
-
+@swagger_auto_schema(
+    method="post",
+    manual_parameters=[
+        openapi.Parameter(
+            "username",
+            type=openapi.TYPE_STRING,
+            description="username",
+            in_=openapi.IN_FORM,
+            required=True,
+        ),
+        openapi.Parameter(
+            "password",
+            type=openapi.TYPE_STRING,
+            description="password",
+            in_=openapi.IN_FORM,
+            required=True,
+        ),
+    ],
+    responses={
+        status.HTTP_200_OK: "OK",
+        status.HTTP_400_BAD_REQUEST: "Bad Request",
+    },
+)
 @api_view(["POST"])
+@parser_classes((FormParser,))
+@permission_classes([AllowAny])
 def login(request):
-    serializer = UserLoginSerializer(data=request.data)
+    username = request.POST.get("username")
+    password = request.POST.get("password")
+    user = authenticate(username=username, password=password)
+    if user is not None:
+        session_id = str(uuid.uuid4())
+        session_storage.set(session_id, username)
+        response = Response(status=status.HTTP_200_OK)
+        response.set_cookie("session_id", session_id, samesite="lax")
+        return response
+    return Response(
+        {"error": "Invalid Credentials"}, status=status.HTTP_400_BAD_REQUEST
+    )
 
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_401_UNAUTHORIZED)
 
-    user = authenticate(**serializer.data)
-    if user is None:
-        return Response(status=status.HTTP_401_UNAUTHORIZED)
-
-    return Response(status=status.HTTP_200_OK)
-
-
+@swagger_auto_schema(
+    method="post",
+    responses={
+        status.HTTP_204_NO_CONTENT: "No content",
+        status.HTTP_403_FORBIDDEN: "Forbidden",
+    },
+)
 @api_view(["POST"])
+@permission_classes([IsAuth])
 def logout(request):
-    return Response(status=status.HTTP_200_OK)
+    session_id = request.COOKIES["session_id"]
+    if session_storage.exists(session_id):
+        session_storage.delete(session_id)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    return Response(status=status.HTTP_403_FORBIDDEN)
+
+
+@swagger_auto_schema(
+    method="put",
+    request_body=UserSerializer,
+    responses={
+        status.HTTP_200_OK: UserSerializer(),
+        status.HTTP_400_BAD_REQUEST: "Bad Request",
+        status.HTTP_403_FORBIDDEN: "Forbidden",
+    },
+)
+@api_view(["PUT"])
+@permission_classes([IsAuth])
+@authentication_classes([AuthBySessionID])
+def update_user(request):
+    serializer = UserSerializer(request.user, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
