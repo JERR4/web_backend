@@ -18,6 +18,7 @@ from rest_framework.decorators import (
 from rest_framework.permissions import AllowAny
 from .authorization import *
 from .redis import session_storage
+from .utils import *
 from rest_framework.parsers import FormParser
 import uuid
 
@@ -64,7 +65,7 @@ def get_parts_list(request):
     serializer = PartSerializer(parts, many=True)
     
     draft_shipment = None
-    if request.user.is_authenticated:
+    if request.user:
         try:
             draft_shipment = Shipment.objects.get(status=1, owner=request.user)
         except Shipment.DoesNotExist:
@@ -88,10 +89,7 @@ def get_parts_list(request):
         )
     ],
     responses={
-        status.HTTP_200_OK: openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            description="Деталь, найденная по ID",
-        ),
+        status.HTTP_200_OK: PartSerializer(),
         status.HTTP_404_NOT_FOUND: "Деталь не найдена",
     },
 )
@@ -113,10 +111,7 @@ def get_part_by_id(request, part_id):
     method="post",
     request_body=CreateUpdatePartSerializer,
     responses={
-        status.HTTP_201_CREATED: openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            description="Созданная деталь",
-        ),
+        status.HTTP_201_CREATED: PartSerializer(),
         status.HTTP_400_BAD_REQUEST: "Неверные данные",
         status.HTTP_403_FORBIDDEN: "Вы не вошли в систему как модератор",
     },
@@ -146,10 +141,7 @@ def create_part(request):
         )
     ],
     responses={
-        status.HTTP_200_OK: openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            description="Обновленные данные детали",
-        ),
+        status.HTTP_200_OK: PartSerializer(),
         status.HTTP_403_FORBIDDEN: "Вы не вошли в систему как модератор",
         status.HTTP_404_NOT_FOUND: "Деталь не найдена",
         status.HTTP_400_BAD_REQUEST: "Неверные данные",
@@ -184,11 +176,7 @@ def update_part(request, part_id):
         )
     ],
     responses={
-        status.HTTP_200_OK: openapi.Schema(
-            type=openapi.TYPE_ARRAY,
-            items=openapi.Schema(type=openapi.TYPE_OBJECT),
-            description="Обновленный список деталей после удаления",
-        ),
+        status.HTTP_200_OK: PartSerializer(many=True),
         status.HTTP_403_FORBIDDEN: "Вы не вошли в систему как модератор",
         status.HTTP_404_NOT_FOUND: "Деталь не найдена",
     },
@@ -221,11 +209,7 @@ def delete_part(request, part_id):
         )
     ],
     responses={
-        status.HTTP_201_CREATED: openapi.Schema(
-            type=openapi.TYPE_ARRAY,
-            items=openapi.Schema(type=openapi.TYPE_OBJECT),
-            description="Обновленный список деталей в отправке-черновике",
-        ),
+        status.HTTP_201_CREATED: ShipmentSerializer(),
         status.HTTP_404_NOT_FOUND: "Деталь не найдена",
         status.HTTP_400_BAD_REQUEST: "Деталь уже добавлена в черновик",
         status.HTTP_403_FORBIDDEN: "Вы не вошли в систему",
@@ -283,10 +267,7 @@ def add_part_to_shipment(request, part_id):
         )
     ],
     responses={
-        status.HTTP_200_OK: openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            description="Обновленная информация о детали с новым изображением",
-        ),
+        status.HTTP_200_OK: PartSerializer(),
         status.HTTP_400_BAD_REQUEST: "Изображение не предоставлено",
         status.HTTP_403_FORBIDDEN: "Вы не вошли в систему как модератор",
         status.HTTP_404_NOT_FOUND: "Деталь не найдена",
@@ -568,6 +549,7 @@ def update_status_admin(request, shipment_id):
     shipment.completion_date = timezone.now()
     shipment.status = request_status
     shipment.moderator = request.user
+    shipment.license_plate_number = rand_number()
     shipment.save()
 
     serializer = ShipmentSerializer(shipment, many=False)
@@ -626,10 +608,7 @@ def delete_shipment(request, shipment_id):
         ),
     ],
     responses={
-        status.HTTP_200_OK: openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            description="Обновлённые данные отправки после удаления детали",
-        ),
+        status.HTTP_200_OK: ShipmentSerializer(),
         status.HTTP_403_FORBIDDEN: "Доступ запрещен",
         status.HTTP_404_NOT_FOUND: "Связь между деталью и отправкой не найдена",
     },
@@ -677,10 +656,7 @@ def delete_part_from_shipment(request, part_shipment_id):
         description="Обновлённые данные отправки детали"
     ),
     responses={
-        status.HTTP_200_OK: openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            description="Обновлённые данные отправки детали",
-        ),
+        status.HTTP_200_OK: PartShipmentSerializer(),
         status.HTTP_403_FORBIDDEN: "Доступ запрещен",
         status.HTTP_404_NOT_FOUND: "Отправка детали не найдена",
         status.HTTP_400_BAD_REQUEST: "Количество не предоставлено",

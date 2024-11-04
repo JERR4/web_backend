@@ -45,6 +45,7 @@ class Shipment(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь", null=True, related_name='owner')
     moderator = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Модератор", null=True, related_name='moderator')
     operation_type = models.BooleanField(choices=OPERATION_TYPE_CHOICES, null=True, blank=True, verbose_name="Тип операции")
+    license_plate_number =  models.CharField(max_length=10, verbose_name="Номер автомобиля", blank=True, null=True)
 
     def __str__(self):
         if self.owner:
