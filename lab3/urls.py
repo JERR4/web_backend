@@ -42,29 +42,29 @@ urlpatterns = [
         schema_view.with_ui("swagger", cache_timeout=0),
         name="schema-swagger-ui",
     ),
-    path('api/parts/search/', get_parts_list, name='get_parts_list'),  # GET
-    path('api/parts/<int:part_id>/',get_part_by_id, name='get_part_by_id'),  # GET
-    path('api/parts/create/', create_part, name='create_part'),  # POST
-    path('api/parts/<int:part_id>/update/', update_part, name='update_part'),  # PUT
-    path('api/parts/<int:part_id>/delete/', delete_part, name='delete_part'),  # DELETE
-    path('api/parts/<int:part_id>/add_to_shipment/',add_part_to_shipment, name='add_part_to_shipment'),  # POST
-    path('api/parts/<int:part_id>/update_image/', update_part_image, name='update_image'),  # POST
+    path('parts/search/', get_parts_list, name='get_parts_list'),  # GET
+    path('parts/<int:part_id>/',get_part_by_id, name='get_part_by_id'),  # GET
+    path('parts/create/', create_part, name='create_part'),  # POST
+    path('parts/<int:part_id>/update/', update_part, name='update_part'),  # PUT
+    path('parts/<int:part_id>/delete/', delete_part, name='delete_part'),  # DELETE
+    path('parts/<int:part_id>/add_to_shipment/',add_part_to_shipment, name='add_part_to_shipment'),  # POST
+    path('parts/<int:part_id>/update_image/', update_part_image, name='update_image'),  # POST
 
     # Набор методов для заявок
-    path('api/shipments/search/',  get_shipments_list, name=' get_shipments_list'),  # GET
-    path('api/shipments/<int:shipment_id>/', get_shipment_by_id, name='get_shipment_by_id'),  # GET
-    path('api/shipments/<int:shipment_id>/update/', update_shipment, name='update_shipment'),  # PUT
-    path('api/shipments/<int:shipment_id>/update_status_user/', update_status_user, name='update_status_user'),  # PUT
-    path('api/shipments/<int:shipment_id>/update_status_admin/', update_status_admin, name='update_status_admin'),  # PUT
-    path('api/shipments/<int:shipment_id>/delete/', delete_shipment, name='delete_shipment'),  # DELETE
+    path('shipments/search/',  get_shipments_list, name=' get_shipments_list'),  # GET
+    path('shipments/<int:shipment_id>/', get_shipment_by_id, name='get_shipment_by_id'),  # GET
+    path('shipments/<int:shipment_id>/update/', update_shipment, name='update_shipment'),  # PUT
+    path('shipments/<int:shipment_id>/update_status_user/', update_status_user, name='update_status_user'),  # PUT
+    path('shipments/<int:shipment_id>/update_status_admin/', update_status_admin, name='update_status_admin'),  # PUT
+    path('shipments/<int:shipment_id>/delete/', delete_shipment, name='delete_shipment'),  # DELETE
 
     # Набор методов для м-м
-    path('api/part_shipments/<int:part_shipment_id>/update_part_shipment/', update_part_shipment, name='update_part_shipment'),  # PUT
-    path('api/part_shipments/<int:part_shipment_id>/delete_part_from_shipment/', delete_part_from_shipment, name='delete_part_from_shipment'),  # DELETE
+    path('shipments/<int:shipment_id>/update_part_shipment/<int:part_id>', update_part_shipment, name='update_part_shipment'),  # PUT
+    path('shipments/<int:shipment_id>/delete_part_from_shipment/<int:part_id>', delete_part_from_shipment, name='delete_part_from_shipment'),  # DELETE
 
     # Набор методов пользователей
-    path('api/users/register/', register, name='register'),  # POST
-    path('api/users/login/', login, name='login'),  # POST
-    path('api/users/logout/', logout, name='logout'),  # POST
-    path('api/users/update/', update_user, name='update_user'),  # PUT
+    path('users/register/', register, name='register'),  # POST
+    path('users/login/', login, name='login'),  # POST
+    path('users/logout/', logout, name='logout'),  # POST
+    path('users/update/', update_user, name='update_user'),  # PUT
 ]

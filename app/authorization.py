@@ -11,13 +11,17 @@ class AuthBySessionID(authentication.BaseAuthentication):
         if session_id is None:
             raise exceptions.AuthenticationFailed("Нет сессии")
         try:
-            username = session_storage.get(session_id).decode("utf-8")
+            user_id = session_storage.get(session_id).decode("utf-8")
         except Exception as e:
             raise exceptions.AuthenticationFailed("Сессия с таким ID не найдена в хранилище сессий")
-        user = User.objects.get(username=username)
-        if user is None:
-            raise exceptions.AuthenticationFailed("Нет пользователя с именем, соответствующим сессии, в БД")
+        
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            raise exceptions.AuthenticationFailed("Пользователь с таким ID не найден в БД")
+        
         return user, None
+
 
 
 class AuthBySessionIDIfExists(authentication.BaseAuthentication):
@@ -26,10 +30,10 @@ class AuthBySessionIDIfExists(authentication.BaseAuthentication):
         if session_id is None:
             return None, None
         try:
-            username = session_storage.get(session_id).decode("utf-8")
+            user_id = session_storage.get(session_id).decode("utf-8")
         except Exception as e:
             return None, None
-        user = User.objects.get(username=username)
+        user = User.objects.get(id=user_id)
         return user, None
 
 
@@ -39,10 +43,12 @@ class IsAuth(permissions.BasePermission):
         if session_id is None:
             return False
         try:
-            session_storage.get(session_id).decode("utf-8")
+            user_id = session_storage.get(session_id).decode("utf-8")
+            user = User.objects.get(id=user_id)
         except Exception as e:
             return False
         return True
+
 
 
 class IsManagerAuth(permissions.BasePermission):
@@ -51,10 +57,10 @@ class IsManagerAuth(permissions.BasePermission):
         if session_id is None:
             return False
         try:
-            username = session_storage.get(session_id).decode("utf-8")
+            user_id = session_storage.get(session_id).decode("utf-8")
         except Exception as e:
             return False
-        user = User.objects.filter(username=username).first()
+        user = User.objects.filter(id=user_id).first()
         if user is None:
             return False
         return user.is_superuser
